@@ -13,7 +13,6 @@ coverage
 !src/**
 
 ./tsconfig.tsbuildinfo
-package-lock.json
 medusa-db.sql
 build
 .cache
@@ -26,3 +25,5 @@ build
 !.yarn/versions
 
 .medusa
+
+# package-lock.json is committed: npm ci (used by CI) requires it.

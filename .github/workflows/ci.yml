@@ -1,7 +1,7 @@
 name: CI
 
 # Backend repo. The project is at the repository root here, so there is no
-# working-directory and the lockfile path is plain `yarn.lock`.
+# working-directory and the lockfile path is plain `package-lock.json`.
 
 on:
   pull_request:
@@ -20,40 +20,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # `cache: npm` keys off package-lock.json and needs no extra setup, unlike
+      # the Yarn 4 route this project never actually used: the committed
+      # yarn.lock was Yarn 1 format, so `yarn install --immutable` had to
+      # rewrite it and failed every run.
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
-      # Yarn 4 comes from the `packageManager` field, so corepack has to be on
-      # before any yarn command — including the one that reports the cache
-      # folder below. The runner's preinstalled yarn is 1.x and would answer
-      # with a different path.
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Resolve Yarn cache folder
-        run: echo "YARN_CACHE_FOLDER=$(yarn config get cacheFolder)" >> "$GITHUB_ENV"
-
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.YARN_CACHE_FOLDER }}
-          key: yarn-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
-          restore-keys: yarn-${{ runner.os }}-
-
-      # --immutable fails if yarn.lock does not match package.json, so a
-      # dependency change committed without its lockfile update is caught here
-      # rather than at deploy time.
+      # `npm ci` installs strictly from the lockfile and fails if it disagrees
+      # with package.json — a dependency change committed without its lockfile
+      # update is caught here rather than at deploy time.
       - name: Install
-        run: yarn install --immutable
+        run: npm ci
 
       - name: Migration policy
-        run: yarn lint:migrations
+        run: npm run lint:migrations
 
       - name: Typecheck
-        run: yarn typecheck
+        run: npm run typecheck
 
       - name: Unit tests
-        run: yarn test:unit:ci
+        run: npm run test:unit:ci
 
       - name: Build
-        run: yarn build
+        run: npm run build
