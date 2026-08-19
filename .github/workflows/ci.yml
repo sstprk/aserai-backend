@@ -1,0 +1,59 @@
+name: CI
+
+# Backend repo. The project is at the repository root here, so there is no
+# working-directory and the lockfile path is plain `yarn.lock`.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint · typecheck · unit tests · build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Yarn 4 comes from the `packageManager` field, so corepack has to be on
+      # before any yarn command — including the one that reports the cache
+      # folder below. The runner's preinstalled yarn is 1.x and would answer
+      # with a different path.
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Resolve Yarn cache folder
+        run: echo "YARN_CACHE_FOLDER=$(yarn config get cacheFolder)" >> "$GITHUB_ENV"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.YARN_CACHE_FOLDER }}
+          key: yarn-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: yarn-${{ runner.os }}-
+
+      # --immutable fails if yarn.lock does not match package.json, so a
+      # dependency change committed without its lockfile update is caught here
+      # rather than at deploy time.
+      - name: Install
+        run: yarn install --immutable
+
+      - name: Migration policy
+        run: yarn lint:migrations
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Unit tests
+        run: yarn test:unit:ci
+
+      - name: Build
+        run: yarn build
