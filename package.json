@@ -15,7 +15,7 @@
   "scripts": {
     "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
-    "postinstall": "node scripts/apply-tr-overrides.mjs",
+    "postinstall": "node -e \"const f='scripts/apply-tr-overrides.mjs',fs=require('fs');fs.existsSync(f)?require('child_process').execFileSync(process.execPath,[f],{stdio:'inherit'}):0\"",
     "start": "medusa start",
     "dev": "medusa develop",
     "typecheck": "tsc --noEmit",

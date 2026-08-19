@@ -19,6 +19,11 @@
  * This patches node_modules, which `npm install` wipes — hence the
  * `postinstall` hook in package.json. Safe to run repeatedly.
  *
+ * `medusa build` copies package.json into `.medusa/server` but not this
+ * script, so the postinstall that runs there would abort the production
+ * install with MODULE_NOT_FOUND. The patch is already baked into the admin
+ * bundle by then, so that tree passes `--if-present` and the run is skipped.
+ *
  * Note: Vite pre-bundles the dashboard into node_modules/.vite, so that cache
  * is dropped whenever a patch is applied; the dev server rebuilds it on boot.
  */
