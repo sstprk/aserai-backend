@@ -6,6 +6,7 @@ import {
   StoreGetEmployeeParamsType,
 } from "../../validators";
 import { getTenantId } from "../../../../../types/tenant-context";
+import { assertCustomerHasNoCompany } from "../../../../../utils/company-membership";
 
 export const GET = async (
   req: MedusaRequest<StoreGetEmployeeParamsType>,
@@ -43,6 +44,10 @@ export const POST = async (
 ) => {
   const { id } = req.params;
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
+
+  // See the admin route: without this the same customer could be linked to a
+  // second company and the membership became ambiguous.
+  await assertCustomerHasNoCompany(req.scope, req.validatedBody.customer_id);
 
   const { result: createdEmployee } = await createEmployeesWorkflow.run({
     input: {

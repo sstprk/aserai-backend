@@ -65,10 +65,12 @@ export const DELETE = async (
 ) => {
   const { id } = req.params;
 
-  const { result } = await deleteCompaniesWorkflow.run({
-    input: {
-      id,
-    },
+  // `container` was missing here, unlike every sibling route. The workflow then
+  // resolved from the global container instead of the request scope, which
+  // fails now that the cascade steps resolve QUERY and REMOTE_LINK.
+  await deleteCompaniesWorkflow.run({
+    input: { id },
+    container: req.scope,
   });
 
   res.status(200).json({

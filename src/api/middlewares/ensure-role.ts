@@ -4,6 +4,7 @@ import {
   MedusaResponse,
 } from "@medusajs/framework";
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
+import { findLiveMembership } from "../../utils/company-membership";
 
 export const ensureRole = (role: string) => {
   return async (
@@ -38,23 +39,23 @@ export const ensureRole = (role: string) => {
       }
     }
 
-    const {
-      data: [customer],
-    } = await query.graph({
-      entity: "customer",
-      fields: ["id", "employee.id", "employee.is_admin", "employee.company_id"],
-      filters: { id: customerId },
-    });
+    // `customer.employee` resolves through a one-to-one link that can still
+    // point at an employee whose company was deleted. Reading it directly made
+    // every request after the first employee 403 — the stale row never matched
+    // the requested company. findLiveMembership discards dead memberships.
+    const membership = await findLiveMembership(req.scope, customerId);
 
-    const employee = customer?.employee;
-    const isRequestedRole = role === "company_admin" && employee?.is_admin;
+    const isRequestedRole = role === "company_admin" && membership?.isAdmin;
     const isRequestedCompany =
-      !req.params.id || employee?.company_id === req.params.id;
+      !req.params.id || membership?.companyId === req.params.id;
 
     if (isRequestedRole && isRequestedCompany) {
       return next();
     }
 
-    return res.status(403).json({ message: "Forbidden" });
+    return res.status(403).json({
+      message:
+        "Bu işlem için şirket yöneticisi olmanız gerekiyor.",
+    });
   };
 };

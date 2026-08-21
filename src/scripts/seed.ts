@@ -97,8 +97,15 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
   logger.info("Seeding tax regions...");
   await createTaxRegionsWorkflow(container).run({
+    // `provider_id` has no default anywhere in the stack: the workflow stores
+    // whatever it is given and `getTaxLinesFromProvider` passes it straight to
+    // `retrieveProvider`. Leaving it null makes every cart that has both line
+    // items and a shipping address fail tax calculation with a bare 500 —
+    // i.e. checkout dies at the first step. "tp_system" is Medusa's built-in
+    // provider, registered automatically by the tax module.
     input: countries.map((country_code) => ({
       country_code,
+      provider_id: "tp_system",
     })),
   });
   logger.info("Finished seeding tax regions.");
@@ -224,7 +231,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         rules: [
           {
             attribute: "enabled_in_store",
-            value: '"true"',
+            // Plain "true", not '"true"'. The rule value is compared as a raw
+            // string against the context the store endpoint builds, so the
+            // extra quote characters made the rule match nothing and
+            // /store/shipping-options returned [] for every cart.
+            value: "true",
             operator: "eq",
           },
           {
@@ -262,7 +273,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
         rules: [
           {
             attribute: "enabled_in_store",
-            value: '"true"',
+            // Plain "true", not '"true"'. The rule value is compared as a raw
+            // string against the context the store endpoint builds, so the
+            // extra quote characters made the rule match nothing and
+            // /store/shipping-options returned [] for every cart.
+            value: "true",
             operator: "eq",
           },
           {
@@ -352,6 +367,12 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       products: [
         {
+          // Medusa matches a cart's shipping options against the shipping
+          // profiles of the products in it. Without this link
+          // `product_shipping_profile` stays empty, /store/shipping-options
+          // returns [], and checkout stalls on the delivery step with
+          // nothing to pick.
+          shipping_profile_id: shippingProfile.id,
           title:
             '16" Ultra-Slim AI Laptop | 3K OLED | 1.1cm Thin | 6-Speaker Audio',
           collection_id: collection.id,
@@ -437,6 +458,12 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       products: [
         {
+          // Medusa matches a cart's shipping options against the shipping
+          // profiles of the products in it. Without this link
+          // `product_shipping_profile` stays empty, /store/shipping-options
+          // returns [], and checkout stalls on the delivery step with
+          // nothing to pick.
+          shipping_profile_id: shippingProfile.id,
           title: "1080p HD Pro Webcam | Superior Video | Privacy enabled",
           category_ids: [
             categoryResult.find((cat) => cat.name === "Accessories")?.id!,
@@ -511,6 +538,12 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       products: [
         {
+          // Medusa matches a cart's shipping options against the shipping
+          // profiles of the products in it. Without this link
+          // `product_shipping_profile` stays empty, /store/shipping-options
+          // returns [], and checkout stalls on the delivery step with
+          // nothing to pick.
+          shipping_profile_id: shippingProfile.id,
           title: `6.5" Ultra HD Smartphone | 3x Impact-Resistant Screen`,
           collection_id: collection.id,
           category_ids: [
@@ -595,6 +628,12 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       products: [
         {
+          // Medusa matches a cart's shipping options against the shipping
+          // profiles of the products in it. Without this link
+          // `product_shipping_profile` stays empty, /store/shipping-options
+          // returns [], and checkout stalls on the delivery step with
+          // nothing to pick.
+          shipping_profile_id: shippingProfile.id,
           title: `34" QD-OLED Curved Gaming Monitor | Ultra-Wide | Infinite Contrast | 175Hz`,
           collection_id: collection.id,
           category_ids: [
@@ -676,6 +715,12 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       products: [
         {
+          // Medusa matches a cart's shipping options against the shipping
+          // profiles of the products in it. Without this link
+          // `product_shipping_profile` stays empty, /store/shipping-options
+          // returns [], and checkout stalls on the delivery step with
+          // nothing to pick.
+          shipping_profile_id: shippingProfile.id,
           title: "Hi-Fi Gaming Headset | Pro-Grade DAC | Hi-Res Certified",
           collection_id: collection.id,
           category_ids: [
@@ -753,6 +798,12 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       products: [
         {
+          // Medusa matches a cart's shipping options against the shipping
+          // profiles of the products in it. Without this link
+          // `product_shipping_profile` stays empty, /store/shipping-options
+          // returns [], and checkout stalls on the delivery step with
+          // nothing to pick.
+          shipping_profile_id: shippingProfile.id,
           title: "Wireless Keyboard | Touch ID | Numeric Keypad",
           category_ids: [
             categoryResult.find((cat) => cat.name === "Accessories")?.id!,
@@ -826,6 +877,12 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       products: [
         {
+          // Medusa matches a cart's shipping options against the shipping
+          // profiles of the products in it. Without this link
+          // `product_shipping_profile` stays empty, /store/shipping-options
+          // returns [], and checkout stalls on the delivery step with
+          // nothing to pick.
+          shipping_profile_id: shippingProfile.id,
           title: "Wireless Rechargeable Mouse | Multi-Touch Surface",
           category_ids: [
             categoryResult.find((cat) => cat.name === "Accessories")?.id!,
@@ -899,6 +956,12 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       products: [
         {
+          // Medusa matches a cart's shipping options against the shipping
+          // profiles of the products in it. Without this link
+          // `product_shipping_profile` stays empty, /store/shipping-options
+          // returns [], and checkout stalls on the delivery step with
+          // nothing to pick.
+          shipping_profile_id: shippingProfile.id,
           title: "Conference Speaker | High-Performance | Budget-Friendly",
           category_ids: [
             categoryResult.find((cat) => cat.name === "Accessories")?.id!,

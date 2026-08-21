@@ -11,7 +11,7 @@ import { attachTraceContext } from "./middlewares/trace-context";
 import { requireTenantEntity } from "./middlewares/require-tenant-entity";
 import { requirePermission } from "./middlewares/require-permission";
 import { ensureActiveCustomer } from "./middlewares/ensure-active-customer";
-import { validateAndTransformBody } from "@medusajs/framework";
+import { authenticate, validateAndTransformBody } from "@medusajs/framework";
 import { AdminUpdateCustomerStatus } from "./admin/customers/status/validators";
 
 export default defineMiddlewares({
@@ -35,6 +35,7 @@ export default defineMiddlewares({
       "/admin/role-assignments*",
       "/admin/tenants*",
       "/admin/customers/:id/status",
+      "/admin/customers/:id",
     ].map((matcher) => ({ matcher, middlewares: [resolveTenantContext] })),
     {
       matcher: "/admin/companies/:id*",
@@ -103,11 +104,29 @@ export default defineMiddlewares({
       middlewares: [ensureActiveCustomer],
     },
     {
+      // Deleting a customer had no permission check at all — `requirePermission`
+      // was only wired to the /status route.
+      method: "DELETE",
+      matcher: "/admin/customers/:id",
+      middlewares: [requirePermission("customer", "manage")],
+    },
+    {
       method: "POST",
       matcher: "/admin/customers/:id/status",
       middlewares: [
         requirePermission("customer", "manage"),
         validateAndTransformBody(AdminUpdateCustomerStatus),
+      ],
+    },
+    {
+      // A brand-new identity has no customer yet, so `allowUnregistered` is
+      // required — this is exactly the window in which a guest row is claimed.
+      method: "POST",
+      matcher: "/store/customers/claim-guest",
+      middlewares: [
+        authenticate("customer", ["session", "bearer"], {
+          allowUnregistered: true,
+        }),
       ],
     },
     {

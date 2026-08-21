@@ -6,6 +6,7 @@ import {
   AdminGetEmployeeParamsType,
 } from "../../validators";
 import { getTenantId } from "../../../../../types/tenant-context";
+import { assertCustomerHasNoCompany } from "../../../../../utils/company-membership";
 
 export const GET = async (
   req: MedusaRequest<AdminGetEmployeeParamsType>,
@@ -43,6 +44,10 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
   const { id } = req.params;
+
+  // Nothing used to stop the same customer being added twice; the workflow just
+  // wrote a second link row and the customer's company became ambiguous.
+  await assertCustomerHasNoCompany(req.scope, req.validatedBody.customer_id);
 
   const { result: createdEmployee } = await createEmployeesWorkflow.run({
     input: {
