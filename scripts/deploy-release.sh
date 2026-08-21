@@ -22,12 +22,26 @@ ROOT="${ASERAI_ROOT:-/srv/aserai}"
 SERVICE="${ASERAI_SERVICE:-aserai-backend}"
 KEEP="${ASERAI_KEEP:-1}"          # previous releases retained for rollback
 
+# The box ships Node 18 and other projects may depend on it, so Node 20 lives
+# in its own prefix and is addressed explicitly. Never rely on PATH here.
+NODE_BIN="${ASERAI_NODE_BIN:-/opt/node-20/bin}"
+
 # An extracted bundle needs roughly 600 MB. Refuse rather than fill the disk:
 # a full disk takes Postgres down with it, which is far worse than a failed
 # deploy.
 REQUIRED_MB="${ASERAI_REQUIRED_MB:-1300}"
 
 [ -f "$BUNDLE" ] || { echo "no such bundle: $BUNDLE" >&2; exit 1; }
+
+if [ ! -x "$NODE_BIN/node" ]; then
+  echo "No Node at $NODE_BIN/node — run bootstrap-server.sh first." >&2
+  exit 1
+fi
+node_major=$("$NODE_BIN/node" -p 'process.versions.node.split(".")[0]')
+if [ "$node_major" -lt 20 ]; then
+  echo "$NODE_BIN/node is v${node_major}; Medusa 2.8 needs >= 20." >&2
+  exit 1
+fi
 
 mkdir -p "$ROOT/releases" "$ROOT/shared/static"
 
@@ -60,7 +74,8 @@ rm -rf "$target/static"
 ln -sfn "$ROOT/shared/static" "$target/static"
 
 echo "==> applying migrations"
-( cd "$target" && NODE_ENV=production npx medusa db:migrate )
+( cd "$target" && PATH="$NODE_BIN:$PATH" NODE_ENV=production \
+    "$NODE_BIN/node" ./node_modules/.bin/medusa db:migrate )
 
 # Tenant isolation depends on every module migration having actually run; a
 # name collision silently skipped 13 of them once already. Fail loudly here
